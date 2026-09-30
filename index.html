@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ServiceDesk — Central de Chamados</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@600;700&family=Work+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --sidebar:    #0B1F3A;
+  --sidebar2:   #0A1A31;
+  --page:       #F3F5F9;
+  --surface:    #FFFFFF;
+  --border:     #E2E8F0;
+  --blue:       #0055CC;
+  --blue-lt:    #EBF2FF;
+  --green:      #1A9E5C;
+  --green-lt:   #E8FAF0;
+  --red:        #D92B3A;
+  --red-lt:     #FFF0F1;
+  --yellow:     #C97A00;
+  --yellow-lt:  #FFF8EC;
+  --purple:     #6B2ECC;
+  --purple-lt:  #F3EEFF;
+  --orange:     #C95B00;
+  --orange-lt:  #FFF4EC;
+  --text:       #0D1B2A;
+  --text-mid:   #374151;
+  --muted:      #6B7585;
+  --muted2:     #9BAABB;
+  --font:       'Work Sans', sans-serif;
+  --serif:      'IBM Plex Serif', serif;
+  --mono:       'IBM Plex Mono', monospace;
+  --sidebar-w:  200px;
+  --topbar-h:   60px;
+  --radius:     10px;
+  --shadow:     0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.05);
+}
+
+body { font-family: var(--font); background: var(--page); color: var(--text); display: flex; min-height: 100vh; }
+
+/* ── SIDEBAR ── */
+.sidebar { width: var(--sidebar-w); background: var(--sidebar); position: fixed; top:0; left:0; bottom:0; display:flex; flex-direction:column; z-index:50; }
+.sidebar-logo { background: var(--sidebar2); height: var(--topbar-h); display:flex; align-items:center; gap:10px; padding:0 18px; border-bottom:1px solid rgba(255,255,255,.06); flex-shrink:0; }
+.logo-icon { width:28px; height:28px; background:var(--blue); border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#fff; flex-shrink:0; }
+.logo-name { font-family:var(--serif); font-size:15px; font-weight:700; color:#fff; }
+.sidebar-nav { flex:1; padding:16px 0; overflow-y:auto; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:10px 18px; font-size:13px; font-weight:500; color:#7A94B8; cursor:pointer; transition:background .15s,color .15s; position:relative; }
+.nav-item:hover { background:rgba(255,255,255,.05); color:#B8CDE8; }
+.nav-item.active { background:#0F2F54; color:#fff; }
+.nav-item.active::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--blue); border-radius:0 3px 3px 0; }
+.nav-divider { height:1px; background:rgba(255,255,255,.07); margin:10px 16px; }
+.sidebar-user { margin:12px; background:#0F2844; border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); padding:12px; display:flex; align-items:center; gap:10px; }
+.user-avatar { width:32px; height:32px; background:var(--blue); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; flex-shrink:0; }
+.user-name { font-size:13px; font-weight:600; color:#fff; }
+.user-role { font-size:11px; color:#7A94B8; margin-top:1px; }
+
+/* ── MAIN ── */
+.main { margin-left:var(--sidebar-w); flex:1; display:flex; flex-direction:column; min-height:100vh; }
+
+/* ── TOPBAR ── */
+.topbar { background:var(--surface); height:var(--topbar-h); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 28px; position:sticky; top:0; z-index:40; }
+.topbar-title { font-family:var(--serif); font-size:20px; font-weight:700; color:var(--text); line-height:1; }
+.topbar-sub { font-family:var(--mono); font-size:10px; color:var(--muted2); letter-spacing:.5px; text-transform:uppercase; margin-top:3px; }
+.topbar-right { display:flex; align-items:center; gap:12px; }
+.date-badge { background:var(--page); border:1px solid var(--border); border-radius:8px; padding:6px 14px; display:flex; align-items:center; gap:8px; }
+.date-dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.date-label { font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:.3px; }
+.date-val   { font-family:var(--mono); font-size:11px; font-weight:600; color:var(--text-mid); }
+.btn-primary { background:var(--blue); color:#fff; border:none; border-radius:8px; padding:8px 18px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; transition:background .15s; }
+.btn-primary:hover { background:#0044AA; }
+.btn-secondary { background:#1a56cc; color:#fff; border:none; border-radius:8px; padding:8px 18px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; transition:background .15s; }
+.btn-secondary:hover { background:#1244aa; }
+
+/* ── CONTENT ── */
+.content { padding:24px 28px; flex:1; }
+
+/* ── SLA STRIP ── */
+.sla-strip { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:18px; }
+.sla-card { background:var(--surface); border:1px solid var(--border); border-top:3px solid transparent; border-radius:var(--radius); padding:18px 20px 14px; cursor:pointer; box-shadow:var(--shadow); transition:transform .15s,box-shadow .15s; position:relative; overflow:hidden; }
+.sla-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,.1); }
+.sla-card.red    { border-top-color:var(--red);    background:var(--red-lt);    border-color:#f9c0c4; }
+.sla-card.yellow { border-top-color:var(--yellow); background:var(--yellow-lt); border-color:#f5d988; }
+.sla-card.green  { border-top-color:var(--green);  background:var(--green-lt);  border-color:#a3e4c1; }
+.sla-tag  { font-family:var(--mono); font-size:11px; font-weight:700; letter-spacing:.8px; text-transform:uppercase; margin-bottom:8px; }
+.sla-card.red    .sla-tag { color:var(--red);    }
+.sla-card.yellow .sla-tag { color:var(--yellow); }
+.sla-card.green  .sla-tag { color:var(--green);  }
+.sla-num  { font-size:46px; font-weight:700; line-height:1; margin-bottom:4px; }
+.sla-card.red    .sla-num { color:var(--red);    }
+.sla-card.yellow .sla-num { color:var(--yellow); }
+.sla-card.green  .sla-num { color:var(--green);  }
+.sla-desc { font-size:11px; color:var(--muted); margin-bottom:12px; }
+.sla-bar-track { height:3px; background:rgba(0,0,0,.08); border-radius:100px; overflow:hidden; margin-bottom:4px; }
+.sla-bar-fill  { height:100%; border-radius:100px; }
+.sla-card.red    .sla-bar-fill { background:var(--red);    }
+.sla-card.yellow .sla-bar-fill { background:var(--yellow); }
+.sla-card.green  .sla-bar-fill { background:var(--green);  }
+.sla-pct  { font-family:var(--mono); font-size:9px; color:var(--muted2); text-align:right; }
+.sla-sub-row { display:flex; justify-content:space-between; align-items:center; padding-top:8px; margin-top:8px; border-top:1px solid rgba(0,0,0,.07); }
+.sla-sub-label { font-size:10px; color:var(--muted); }
+.sla-sub-val   { font-family:var(--mono); font-size:11px; font-weight:600; }
+.sla-link { position:absolute; bottom:12px; right:14px; font-size:9px; font-family:var(--mono); opacity:.45; }
+.sla-card.red    .sla-link { color:var(--red);    }
+.sla-card.yellow .sla-link { color:var(--yellow); }
+.sla-card.green  .sla-link { color:var(--green);  }
+
+/* ── KPI GRID ── */
+.kpi-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin-bottom:18px; }
+.kpi-card { background:var(--surface); border:1px solid var(--border); border-top:3px solid transparent; border-radius:var(--radius); padding:16px 18px 14px; box-shadow:var(--shadow); cursor:pointer; transition:transform .15s,box-shadow .15s; }
+.kpi-card:hover { transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,.1); }
+.kpi-card.blue   { border-top-color:var(--blue);   }
+.kpi-card.green  { border-top-color:var(--green);  }
+.kpi-card.red    { border-top-color:var(--red);    }
+.kpi-card.purple { border-top-color:var(--purple); }
+.kpi-card.yellow { border-top-color:var(--yellow); }
+.kpi-label { font-family:var(--mono); font-size:9px; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); margin-bottom:8px; }
+.kpi-value { font-size:32px; font-weight:700; line-height:1; margin-bottom:4px; }
+.kpi-card.blue   .kpi-value { color:var(--blue);   }
+.kpi-card.green  .kpi-value { color:var(--green);  }
+.kpi-card.red    .kpi-value { color:var(--red);    }
+.kpi-card.purple .kpi-value { color:var(--purple); }
+.kpi-card.yellow .kpi-value { color:var(--yellow); }
+.kpi-sub { font-size:10px; color:var(--muted2); }
+
+/* ── CHARTS ── */
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:18px; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px; }
+.card-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:var(--text); margin-bottom:16px; }
+.bar-item { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+.bar-label { font-size:12px; color:var(--text-mid); min-width:160px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bar-track { flex:1; height:8px; background:var(--page); border-radius:100px; overflow:hidden; }
+.bar-fill  { height:100%; border-radius:100px; }
+.bar-count { font-family:var(--mono); font-size:12px; font-weight:600; min-width:22px; text-align:right; }
+.rank-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; flex-shrink:0; }
+
+/* ── TABLE ── */
+.table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+.table-header { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); flex-wrap:wrap; gap:10px; }
+.table-header-title { font-size:13px; font-weight:700; color:var(--text); }
+.search-box { background:var(--page); border:1px solid var(--border); border-radius:7px; padding:7px 14px; color:var(--text); font-family:var(--font); font-size:12px; outline:none; width:220px; transition:border-color .2s; }
+.search-box:focus { border-color:var(--blue); }
+.search-box::placeholder { color:var(--muted2); }
+.filter-btn { background:var(--page); border:1px solid var(--border); border-radius:7px; padding:6px 12px; color:var(--muted); font-family:var(--font); font-size:11px; font-weight:500; cursor:pointer; transition:all .15s; }
+.filter-btn:hover { border-color:var(--blue); color:var(--blue); }
+.filter-btn.active { background:var(--blue-lt); border-color:var(--blue); color:var(--blue); font-weight:600; }
+.filters { display:flex; gap:6px; flex-wrap:wrap; }
+table { width:100%; border-collapse:collapse; font-size:12.5px; }
+thead th { background:var(--page); padding:10px 16px; text-align:left; font-family:var(--mono); font-size:10px; letter-spacing:.7px; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--border); cursor:pointer; user-select:none; white-space:nowrap; }
+thead th:hover { color:var(--blue); }
+tbody tr { border-bottom:1px solid #F0F3F7; transition:background .1s; }
+tbody tr:last-child { border-bottom:none; }
+tbody tr:hover { background:#F7F9FC; }
+td { padding:11px 16px; vertical-align:middle; }
+.ticket-id { font-family:var(--mono); font-size:11px; font-weight:500; color:var(--blue); }
+.ticket-summary { max-width:260px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500; color:var(--text); }
+.status-badge { display:inline-block; font-size:10px; font-weight:600; padding:3px 10px; border-radius:100px; white-space:nowrap; }
+.status-designado          { background:var(--blue-lt);   color:var(--blue);   }
+.status-em-andamento       { background:var(--green-lt);  color:var(--green);  }
+.status-pendente-ti        { background:#F3F4F6;           color:#5A6272;       }
+.status-pendente-fornecedor{ background:var(--purple-lt);  color:var(--purple); }
+.status-pendente-usuario   { background:var(--orange-lt);  color:var(--orange); }
+.sla-overdue { color:var(--red);    font-family:var(--mono); font-size:11px; font-weight:600; }
+.sla-soon    { color:var(--yellow); font-family:var(--mono); font-size:11px; font-weight:600; }
+.sla-ok      { color:var(--muted);  font-family:var(--mono); font-size:11px; }
+.pagination { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-top:1px solid var(--border); font-family:var(--mono); font-size:11px; color:var(--muted); }
+.page-btns { display:flex; gap:4px; }
+.page-btn { background:var(--page); border:1px solid var(--border); color:var(--muted); padding:5px 11px; border-radius:6px; cursor:pointer; font-family:var(--mono); font-size:11px; transition:all .15s; }
+.page-btn:hover  { border-color:var(--blue); color:var(--blue); }
+.page-btn.active { background:var(--blue); border-color:var(--blue); color:#fff; }
+.no-results { text-align:center; padding:40px; color:var(--muted); font-size:13px; }
+
+/* ── VIEWS ── */
+.chamados-section { margin-bottom:28px; }
+.chamados-section-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; padding-bottom:12px; border-bottom:2px solid var(--border); }
+.chamados-section-title  { font-size:15px; font-weight:700; color:var(--text); text-transform:uppercase; letter-spacing:.5px; }
+.chamados-section-count  { background:var(--page); border:1px solid var(--border); border-radius:100px; padding:2px 12px; font-family:var(--mono); font-size:12px; color:var(--muted); font-weight:600; }
+.chamados-group { margin-bottom:20px; }
+.chamados-group-title { display:flex; align-items:center; justify-content:space-between; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; margin-bottom:10px; padding:8px 14px; border-radius:8px; }
+.tc-empty { text-align:center; padding:24px; color:var(--muted2); font-size:13px; background:var(--page); border-radius:var(--radius); border:1px dashed var(--border); }
+
+/* ── MODALS ── */
+.modal-overlay { display:none; position:fixed; inset:0; background:rgba(13,27,42,.45); backdrop-filter:blur(4px); z-index:100; align-items:center; justify-content:center; }
+.modal-overlay.open { display:flex; }
+.modal { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:28px; width:520px; max-width:95vw; box-shadow:0 20px 60px rgba(0,0,0,.18); animation:modalIn .2s ease; }
+@keyframes modalIn { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-title { font-size:17px; font-weight:700; color:var(--text); margin-bottom:6px; }
+.modal-sub   { font-size:12px; color:var(--muted); margin-bottom:20px; line-height:1.6; }
+.drop-zone { border:2px dashed #CBD5E0; border-radius:10px; padding:32px 20px; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; }
+.drop-zone:hover,.drop-zone.drag-over { border-color:var(--blue); background:#F0F5FF; }
+.drop-icon  { font-size:32px; margin-bottom:8px; }
+.drop-label { font-size:14px; font-weight:600; color:var(--blue); }
+.drop-hint  { font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:4px; }
+#fileInput { display:none; }
+.modal-status { margin-top:14px; padding:10px 14px; border-radius:8px; font-family:var(--mono); font-size:12px; display:none; }
+.modal-status.success { background:var(--green-lt); color:var(--green); }
+.modal-status.error   { background:var(--red-lt);   color:var(--red);   }
+.modal-status.loading { background:var(--blue-lt);  color:var(--blue);  }
+.modal-actions { display:flex; gap:8px; margin-top:18px; justify-content:flex-end; }
+.btn-cancel { background:var(--page); border:1px solid var(--border); color:var(--muted); padding:9px 18px; border-radius:8px; font-family:var(--font); font-size:13px; font-weight:600; cursor:pointer; }
+.btn-cancel:hover { color:var(--text); border-color:var(--text); }
+.btn-apply  { background:var(--blue); border:none; color:#fff; padding:9px 22px; border-radius:8px; font-family:var(--font); font-size:13px; font-weight:700; cursor:pointer; display:none; }
+.btn-apply:hover { background:#0044AA; }
+
+/* ── RESIZE HANDLES ── */
+.resize-handle { position:absolute; z-index:10; }
+.resize-n  { top:-4px;    left:12px;   right:12px;  height:8px;  cursor:n-resize;  }
+.resize-s  { bottom:-4px; left:12px;   right:12px;  height:8px;  cursor:s-resize;  }
+.resize-e  { right:-4px;  top:12px;    bottom:12px; width:8px;   cursor:e-resize;  }
+.resize-w  { left:-4px;   top:12px;    bottom:12px; width:8px;   cursor:w-resize;  }
+.resize-ne { top:-6px;    right:-6px;  width:14px;  height:14px; cursor:ne-resize; }
+.resize-nw { top:-6px;    left:-6px;   width:14px;  height:14px; cursor:nw-resize; }
+.resize-se { bottom:-6px; right:-6px;  width:14px;  height:14px; cursor:se-resize; }
+.resize-sw { bottom:-6px; left:-6px;   width:14px;  height:14px; cursor:sw-resize; }
+
+@media print {
+  body > * { display:none !important; }
+  #teamsModalOverlay { display:block !important; position:static !important; background:none !important; padding:0 !important; }
+  #teamsModalOverlay > div { box-shadow:none !important; border:none !important; max-height:none !important; width:100% !important; }
+  #teamsToolbar { display:none !important; }
+  #teamsContent { overflow:visible !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">◈</div>
+    <div class="logo-name">ServiceDesk</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" onclick="switchView('dashboard')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" onclick="switchView('chamados')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Chamados
+    </div>
+    <div class="nav-item" onclick="switchView('analistas')">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Analistas
+    </div>
+    <div class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Relatórios
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-item">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+      Configuração
+    </div>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">A</div>
+    <div>
+      <div class="user-name">Admin</div>
+      <div class="user-role">Gerente TI</div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="pageTitle">Central de Chamados</div>
+      <div class="topbar-sub"  id="pageSub">Gestão de Atendimento — Visão Gerencial</div>
+    </div>
+    <div class="topbar-right">
+      <div class="date-badge">
+        <div class="date-dot"></div>
+        <div>
+          <div class="date-label">Atualizado em</div>
+          <div class="date-val" id="updateLabel">—</div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="openModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Importar Planilha
+      </button>
+      <button class="btn-secondary" onclick="openTeamsModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Resumo Teams
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- VIEW DASHBOARD -->
+    <div id="viewDashboard">
+
+      <!-- Estado vazio -->
+      <div id="emptyState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;text-align:center;">
+        <div style="font-size:56px;margin-bottom:20px;">📂</div>
+        <div style="font-family:var(--serif);font-size:22px;font-weight:700;color:var(--text);margin-bottom:10px;">Nenhuma planilha importada</div>
+        <div style="font-size:14px;color:var(--muted);margin-bottom:28px;max-width:380px;line-height:1.6;">Importe sua planilha de chamados para visualizar os dados do dashboard.</div>
+        <button class="btn-primary" onclick="openModal()" style="font-size:14px;padding:10px 24px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Importar Planilha
+        </button>
+      </div>
+      <div class="sla-strip" id="slaCenario"></div>
+      <div class="kpi-grid"  id="kpiGrid"></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Status dos Chamados</div>
+          <div id="statusChart"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Distribuição por Status</div>
+          <div id="pieChart" style="display:flex;flex-direction:column;align-items:center;gap:16px;">
+            <canvas id="pieCanvas" width="200" height="200"></canvas>
+            <div id="pieLegend" style="width:100%;display:flex;flex-direction:column;gap:10px;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Chamados por Mês (Abertura)</div>
+          <div id="monthChart"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Ranking de Analistas</div>
+          <div id="rankingChart"></div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-header-title">Todos os Chamados</div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+            <input class="search-box" id="searchInput" type="text" placeholder="Buscar chamado...">
+            <div class="filters" id="filterBtns"></div>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th onclick="sortTable('id')">Nº Chamado ↕</th>
+                <th onclick="sortTable('summary')">Resumo ↕</th>
+                <th onclick="sortTable('status')">Status ↕</th>
+                <th onclick="sortTable('owner')">Analista ↕</th>
+                <th onclick="sortTable('created')">Criado em ↕</th>
+                <th onclick="sortTable('sla')">SLA Vencimento ↕</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+          <div class="no-results" id="noResults" style="display:none">Nenhum chamado encontrado.</div>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div><!-- /viewDashboard -->
+
+    <!-- VIEW CHAMADOS -->
+    <div id="viewChamados" style="display:none;">
+      <div id="chamadosContent"></div>
+    </div>
+
+    <!-- VIEW ANALISTAS -->
+    <div id="viewAnalistas" style="display:none;">
+      <div id="analistasContent"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL TEAMS -->
+<div class="modal-overlay" id="teamsModalOverlay" onclick="if(event.target===this)closeTeamsModal()">
+  <div class="modal" id="teamsModal" style="width:860px;max-width:96vw;max-height:92vh;display:flex;flex-direction:column;padding:0;overflow:hidden;position:relative;">
+    <div class="resize-handle resize-n"  data-dir="n"></div>
+    <div class="resize-handle resize-s"  data-dir="s"></div>
+    <div class="resize-handle resize-e"  data-dir="e"></div>
+    <div class="resize-handle resize-w"  data-dir="w"></div>
+    <div class="resize-handle resize-ne" data-dir="ne"></div>
+    <div class="resize-handle resize-nw" data-dir="nw"></div>
+    <div class="resize-handle resize-se" data-dir="se"></div>
+    <div class="resize-handle resize-sw" data-dir="sw"></div>
+    <div id="teamsToolbar" style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);flex-shrink:0;cursor:move;">
+      <span style="font-size:13px;font-weight:700;color:var(--text)">Resumo para Teams</span>
+      <div style="display:flex;gap:8px;">
+        <button onclick="printTeams()" style="background:var(--blue);border:none;color:#fff;padding:7px 16px;border-radius:7px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;">🖨 Imprimir / Screenshot</button>
+        <button onclick="closeTeamsModal()" style="background:var(--page);border:1px solid var(--border);color:var(--muted);padding:7px 14px;border-radius:7px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;">Fechar</button>
+      </div>
+    </div>
+    <div id="teamsContent" style="overflow-y:auto;flex:1;padding:24px 28px;background:#F3F5F9;">
+      <div style="background:#0B1F3A;border-radius:10px;padding:16px 22px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-family:'IBM Plex Serif',serif;font-size:24px;font-weight:700;color:#fff;">Central de Chamados</div>
+          <div style="font-size:15px;color:#7A94B8;margin-top:3px;font-family:'IBM Plex Mono',monospace;letter-spacing:.4px;">RELATÓRIO DIÁRIO — <span id="teamsDate"></span></div>
+        </div>
+        <div style="display:flex;gap:8px;" id="teamsKpiBadges"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px;" id="teamsSlaCards"></div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:20px;" id="teamsKpiCards"></div>
+      <div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;overflow:hidden;">
+        <div style="padding:12px 18px;border-bottom:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:17px;font-weight:700;color:#0D1B2A;">⚠️ Chamados que requerem atenção</div>
+          <div style="font-size:14px;color:#6B7585;font-family:'IBM Plex Mono',monospace;" id="teamsTableCount"></div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead>
+              <tr>
+                <th style="background:#F3F5F9;padding:11px 16px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:.7px;text-transform:uppercase;color:#6B7585;border-bottom:1px solid #E2E8F0;">Nº Chamado</th>
+                <th style="background:#F3F5F9;padding:11px 16px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:.7px;text-transform:uppercase;color:#6B7585;border-bottom:1px solid #E2E8F0;">Resumo</th>
+                <th style="background:#F3F5F9;padding:11px 16px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:.7px;text-transform:uppercase;color:#6B7585;border-bottom:1px solid #E2E8F0;">Status</th>
+                <th style="background:#F3F5F9;padding:11px 16px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:.7px;text-transform:uppercase;color:#6B7585;border-bottom:1px solid #E2E8F0;">Analista</th>
+                <th style="background:#F3F5F9;padding:11px 16px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:.7px;text-transform:uppercase;color:#6B7585;border-bottom:1px solid #E2E8F0;">SLA</th>
+                <th style="background:#F3F5F9;padding:11px 16px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:.7px;text-transform:uppercase;color:#6B7585;border-bottom:1px solid #E2E8F0;">Situação</th>
+              </tr>
+            </thead>
+            <tbody id="teamsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL KPI -->
+<div class="modal-overlay" id="kpiModalOverlay" onclick="if(event.target===this)closeKpiModal()">
+  <div class="modal" style="width:740px;max-height:80vh;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div class="modal-title" id="kpiModalTitle"></div>
+      <button onclick="closeKpiModal()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div class="modal-sub" id="kpiModalSub" style="margin-bottom:16px;"></div>
+    <div style="overflow-y:auto;flex:1;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr>
+          <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Nº</th>
+          <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Resumo</th>
+          <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Status</th>
+          <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Analista</th>
+          <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Criado em</th>
+          <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">SLA</th>
+        </tr></thead>
+        <tbody id="kpiModalBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SLA -->
+<div class="modal-overlay" id="slaModalOverlay" onclick="if(event.target===this)closeSlaModal()">
+  <div class="modal" style="width:700px;max-height:80vh;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div class="modal-title" id="slaModalTitle"></div>
+      <button onclick="closeSlaModal()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;">×</button>
+    </div>
+    <div class="modal-sub" id="slaModalSub" style="margin-bottom:16px;"></div>
+    <div style="overflow-y:auto;flex:1;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr>
+          <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Nº</th>
+          <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Resumo</th>
+          <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Status</th>
+          <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Analista</th>
+          <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">SLA</th>
+        </tr></thead>
+        <tbody id="slaModalBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORT -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-title">Importar Nova Planilha</div>
+    <div class="modal-sub">
+      Faça upload do arquivo .xlsx com a base de chamados atualizada.<br>
+      Colunas: <strong style="color:var(--text)">Requisição de Serviço · Resumo · Status · Criado em · SLA · Proprietário</strong><br>
+      <span style="color:var(--muted2)">Demais colunas são ignoradas automaticamente.</span>
+    </div>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="drop-icon">📂</div>
+      <div class="drop-label">Arraste o arquivo aqui</div>
+      <div class="drop-hint">ou clique para selecionar — .xlsx / .xls</div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFile(this.files[0])">
+    <div class="modal-status" id="modalStatus"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="btn-apply"  id="btnApply" onclick="applyImport()">Aplicar Dados</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+let tickets = [];
+
+// ── DATE / STATUS UTILS ───────────────────────────────────────────────────────
+const TODAY       = (() => { const d=new Date(); d.setHours(0,0,0,0); return d; })();
+const END_OF_TODAY= (() => { const d=new Date(); d.setHours(23,59,59,999); return d; })();
+const STATUS_ATIVOS = ['Em Andamento','Designado'];
+
+function parseLocalDate(str) {
+  // Evita problema de fuso horário ao criar Date de string YYYY-MM-DD
+  // new Date("2026-03-26") é interpretado como UTC, causando erro em fusos negativos
+  if (!str) return null;
+  const [y, m, d] = str.split('-').map(Number);
+  return new Date(y, m - 1, d); // local midnight — sem fuso
+}
+
+function fmtDate(v) {
+  if (!v) return '';
+  if (v instanceof Date) return v.toISOString().slice(0,10);
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+  const m = s.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  return s.slice(0,10);
+}
+
+function fmtDisplay(d) {
+  if (!d) return '—';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+
+function todayStr() {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+function statusClass(s) {
+  const map = {"Pendente Tarefa de TI":"pendente-ti","Pendente Fornecedor":"pendente-fornecedor","Em Andamento":"em-andamento","Designado":"designado","Pendente Usuário":"pendente-usuario"};
+  return 'status-badge status-'+(map[s]||'pendente-ti');
+}
+
+function slaClass(sla) {
+  const d = new Date(sla);
+  if (d < TODAY) return 'sla-overdue';
+  if ((d-TODAY)/86400000 < 3) return 'sla-soon';
+  return 'sla-ok';
+}
+
+function slaGroup(t) {
+  const slaDate = parseLocalDate(t.sla);
+  const diff    = (slaDate-TODAY)/86400000;
+  const ativo   = STATUS_ATIVOS.includes(t.status);
+  if (slaDate < TODAY && ativo)         return 'vencido';
+  if (slaDate < TODAY && !ativo)        return 'pausado';
+  if (slaDate <= END_OF_TODAY && ativo) return 'hoje';
+  if (diff <= 4 && diff > 0 && ativo)   return 'proximo';
+  if (diff >= 5 && ativo)               return 'prazo';
+  return 'pausado';
+}
+
+// ── KPIs ─────────────────────────────────────────────────────────────────────
+function buildKPIs() {
+  const total          = tickets.length;
+  const ativos         = tickets.filter(t => STATUS_ATIVOS.includes(t.status)).length;
+  const overdueCount   = tickets.filter(t => parseLocalDate(t.sla) < TODAY).length;
+  const vencidosAtivos = tickets.filter(t => parseLocalDate(t.sla) <= END_OF_TODAY && STATUS_ATIVOS.includes(t.status)).length;
+  const semAnalista    = tickets.filter(t => !t.owner || !t.owner.trim()).length;
+  const kpis = [
+    {key:'total',    label:'Total de Chamados', value:total,          sub:'na base',                   cls:'blue'},
+    {key:'ativos',   label:'Chamados Ativos',   value:ativos,         sub:'em andamento + designados', cls:'green'},
+    {key:'fora',     label:'Fora da SLA',       value:overdueCount,   sub:'fora do prazo',             cls:'red'},
+    {key:'vencidos', label:'Chamados Vencidos', value:vencidosAtivos, sub:'ativos com SLA expirado',   cls:'purple'},
+    {key:'sem',      label:'Sem Analista',      value:semAnalista,    sub:'aguardando atribuição',     cls:'yellow'},
+  ];
+  document.getElementById('kpiGrid').innerHTML = kpis.map(k => `
+    <div class="kpi-card ${k.cls}" onclick="openKpiModal('${k.key}')">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+}
+
+// ── STATUS CHART ──────────────────────────────────────────────────────────────
+function buildStatusChart() {
+  const counts = {};
+  tickets.forEach(t => counts[t.status]=(counts[t.status]||0)+1);
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const max = sorted[0][1];
+  const colors = {"Pendente Tarefa de TI":"#0055CC","Designado":"#1A9E5C","Pendente Fornecedor":"#6B2ECC","Em Andamento":"#0EA5E9","Pendente Usuário":"#C95B00"};
+  document.getElementById('statusChart').innerHTML = sorted.map(([s,n]) => `
+    <div class="bar-item">
+      <div class="bar-label" title="${s}">${s}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${n/max*100}%;background:${colors[s]||'#0055CC'}"></div></div>
+      <div class="bar-count" style="color:${colors[s]||'#0055CC'}">${n}</div>
+    </div>`).join('');
+}
+
+// ── PIE CHART ─────────────────────────────────────────────────────────────────
+function buildPieChart() {
+  const ativos  = tickets.filter(t=>STATUS_ATIVOS.includes(t.status)).length;
+  const pausados= tickets.filter(t=>!STATUS_ATIVOS.includes(t.status)).length;
+  const total   = tickets.length;
+  const slices  = [{label:'Ativos',count:ativos,color:'#1A9E5C'},{label:'Pausados',count:pausados,color:'#CBD5E0'}];
+  const canvas  = document.getElementById('pieCanvas');
+  const ctx     = canvas.getContext('2d');
+  const cx=100,cy=100,r=80,innerR=48;
+  ctx.clearRect(0,0,200,200);
+  let startAngle = -Math.PI/2;
+  slices.forEach(s => {
+    const sweep = (s.count/total)*2*Math.PI;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,r,startAngle,startAngle+sweep); ctx.closePath();
+    ctx.fillStyle=s.color; ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+    startAngle += sweep;
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,innerR,0,2*Math.PI); ctx.fillStyle='#fff'; ctx.fill();
+  ctx.fillStyle='#0D1B2A'; ctx.font='bold 24px Work Sans,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(total,cx,cy-7);
+  ctx.fillStyle='#9BAABB'; ctx.font='10px IBM Plex Mono,monospace'; ctx.fillText('TOTAL',cx,cy+13);
+  document.getElementById('pieLegend').innerHTML = slices.map(s => {
+    const pct = Math.round((s.count/total)*100);
+    return `<div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:10px;height:10px;border-radius:3px;background:${s.color};flex-shrink:0"></div>
+      <div style="flex:1;font-size:13px;font-weight:600;color:var(--text)">${s.label}</div>
+      <div class="anim-num" style="font-family:var(--mono);font-size:12px;color:${s.color};font-weight:600">${s.count}</div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted2);min-width:34px;text-align:right">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ── MONTH CHART ───────────────────────────────────────────────────────────────
+function buildMonthChart() {
+  const months={}, mLabels=["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  tickets.forEach(t => { const d=new Date(t.created); const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; months[key]=(months[key]||0)+1; });
+  const sorted=Object.entries(months).sort((a,b)=>a[0].localeCompare(b[0]));
+  const max=Math.max(...sorted.map(e=>e[1]));
+  document.getElementById('monthChart').innerHTML = sorted.map(([k,n]) => {
+    const [y,m]=k.split('-');
+    return `<div class="bar-item">
+      <div class="bar-label">${mLabels[parseInt(m)-1]} ${y}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${n/max*100}%;background:#0055CC"></div></div>
+      <div class="bar-count" style="color:#0055CC">${n}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── RANKING ───────────────────────────────────────────────────────────────────
+function buildRanking() {
+  const counts={};
+  tickets.forEach(t => { const name=t.owner&&t.owner.trim()?t.owner.trim():'— Sem analista'; counts[name]=(counts[name]||0)+1; });
+  const sorted=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  const max=sorted[0]?.[1]||1;
+  const palette=['#0055CC','#1A9E5C','#6B2ECC','#C95B00','#D92B3A','#0EA5E9','#C97A00'];
+  const sem=sorted.find(([k])=>k==='— Sem analista');
+  const com=sorted.filter(([k])=>k!=='— Sem analista');
+  const ordered=[...com,...(sem?[sem]:[])];
+  document.getElementById('rankingChart').innerHTML = ordered.length
+    ? ordered.map(([name,n],i) => {
+        const isSem=name==='— Sem analista';
+        const color=isSem?'#9BAABB':palette[i%palette.length];
+        const initial=isSem?'?':name.trim().charAt(0).toUpperCase();
+        return `<div class="bar-item" style="gap:10px;margin-bottom:10px;">
+          <div class="rank-avatar" style="background:${isSem?'#F3F4F6':'rgba(0,85,204,0.1)'};color:${color};border:1px solid ${isSem?'#E2E8F0':color+'44'}">${initial}</div>
+          <div class="bar-label" style="min-width:120px;" title="${name}">${name}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${n/max*100}%;background:${color}"></div></div>
+          <div class="bar-count" style="color:${color}">${n}</div>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">Nenhum dado</div>';
+}
+
+// ── SLA CENÁRIO ───────────────────────────────────────────────────────────────
+function buildSlaCenario() {
+  const groups={vencido:[],hoje:[],proximo:[],prazo:[],pausado:[]};
+  tickets.forEach(t => groups[slaGroup(t)].push(t));
+  const display=[
+    {key:'vencido',cls:'red',   icon:'🔴',label:'Prioridade',        desc:'Ativos com SLA expirado',         list:[...groups.vencido,...groups.hoje], subs:[{label:'SLA expirado',list:groups.vencido,color:'var(--red)'},{label:'Vence hoje',list:groups.hoje,color:'var(--orange)'}]},
+    {key:'proximo',cls:'yellow',icon:'🟡',label:'Próximos a Vencer', desc:'Ativos com SLA nos próximos 3 dias',list:groups.proximo, subs:null},
+    {key:'prazo',  cls:'green', icon:'🟢',label:'No Prazo',          desc:'Ativos com SLA a partir de 5 dias', list:groups.prazo,   subs:[{label:'Pausados fora da SLA',list:groups.pausado,color:'var(--muted)'}]},
+  ];
+  document.getElementById('slaCenario').innerHTML = display.map(z => {
+    const total=z.list.length;
+    const pct=tickets.length?Math.round(total/tickets.length*100):0;
+    const subHTML=z.subs?z.subs.filter(sg=>sg.list.length>0).map(sg=>`
+      <div class="sla-sub-row"><span class="sla-sub-label">${sg.label}</span><span class="sla-sub-val" style="color:${sg.color}">${sg.list.length}</span></div>`).join(''):'';
+    return `
+      <div class="sla-card ${z.cls}" onclick="openSlaModal('${z.key}')">
+        <div class="sla-tag">${z.icon} ${z.label}</div>
+        <div class="sla-num">${total}</div>
+        <div class="sla-desc">${z.desc}</div>
+        <div class="sla-bar-track"><div class="sla-bar-fill" style="width:${pct}%"></div></div>
+        <div class="sla-pct">${pct}% do total</div>
+        ${subHTML}
+        <div class="sla-link">VER DETALHES →</div>
+      </div>`;
+  }).join('');
+}
+
+// ── SLA MODAL ─────────────────────────────────────────────────────────────────
+function openSlaModal(key) {
+  const groups={vencido:[],hoje:[],proximo:[],prazo:[],pausado:[]};
+  tickets.forEach(t=>groups[slaGroup(t)].push(t));
+  let list,title,sub;
+  if (key==='vencido') { list=[...groups.vencido,...groups.hoje].sort((a,b)=>parseLocalDate(a.sla)-parseLocalDate(b.sla)); title='🔴 Prioridade / Vencem Hoje'; sub=`${list.length} chamado${list.length!==1?'s':''} ativo${list.length!==1?'s':''} com SLA expirado ou vencendo hoje`; }
+  else if (key==='proximo') { list=groups.proximo.sort((a,b)=>parseLocalDate(a.sla)-parseLocalDate(b.sla)); title='🟡 Próximos a Vencer (3 dias)'; sub=`${list.length} chamado${list.length!==1?'s':''} vencendo nos próximos 3 dias`; }
+  else { list=[...groups.prazo,...groups.pausado].sort((a,b)=>parseLocalDate(a.sla)-parseLocalDate(b.sla)); title='🟢 Chamados no Prazo'; sub=`${groups.prazo.length} no prazo · ${groups.pausado.length} pausado${groups.pausado.length!==1?'s':''} fora da SLA`; }
+  document.getElementById('slaModalTitle').textContent=title;
+  document.getElementById('slaModalSub').textContent=sub;
+  document.getElementById('slaModalBody').innerHTML=list.length
+    ? list.map(t => {
+        const diff=(parseLocalDate(t.sla)-TODAY)/86400000;
+        const g=slaGroup(t);
+        const diffLabel=g==='vencido'?`<span style="color:var(--red);font-weight:700">${Math.abs(Math.floor(diff))}d vencido</span>`:g==='hoje'?`<span style="color:var(--orange);font-weight:700">Vence hoje</span>`:g==='pausado'?`<span style="color:var(--muted)">Pausado</span>`:`<span style="color:var(--yellow);font-weight:700">${Math.ceil(diff)}d restante${Math.ceil(diff)>1?'s':''}</span>`;
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:10px 14px;font-family:var(--mono);font-size:11px;color:var(--blue)">#${t.id}</td>
+          <td style="padding:10px 14px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px" title="${t.summary}">${t.summary}</td>
+          <td style="padding:10px 14px"><span class="${statusClass(t.status)}">${t.status}</span></td>
+          <td style="padding:10px 14px;font-size:12px;color:${t.owner?'var(--text)':'var(--muted)'}">${t.owner||'Sem analista'}</td>
+          <td style="padding:10px 14px;white-space:nowrap;font-family:var(--mono);font-size:11px">${fmtDisplay(t.sla)}<br>${diffLabel}</td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="5" style="padding:30px;text-align:center;color:var(--muted)">Nenhum chamado neste grupo</td></tr>`;
+  document.getElementById('slaModalOverlay').classList.add('open');
+}
+function closeSlaModal() { document.getElementById('slaModalOverlay').classList.remove('open'); }
+
+// ── KPI MODAL ─────────────────────────────────────────────────────────────────
+function openKpiModal(key) {
+  const titles={total:'Total de Chamados',ativos:'Chamados Ativos',fora:'Fora da SLA',vencidos:'Chamados Vencidos',sem:'Sem Analista'};
+  const filters={total:()=>true,ativos:t=>STATUS_ATIVOS.includes(t.status),fora:t=>parseLocalDate(t.sla)<TODAY,vencidos:t=>parseLocalDate(t.sla)<=END_OF_TODAY&&STATUS_ATIVOS.includes(t.status),sem:t=>!t.owner||!t.owner.trim()};
+  const list=tickets.filter(filters[key]).sort((a,b)=>parseLocalDate(a.sla)-parseLocalDate(b.sla));
+  document.getElementById('kpiModalTitle').textContent=titles[key];
+  document.getElementById('kpiModalSub').textContent=`${list.length} chamado${list.length!==1?'s':''} encontrado${list.length!==1?'s':''}`;
+  document.getElementById('kpiModalBody').innerHTML=list.length
+    ? list.map(t => {
+        const diff=(parseLocalDate(t.sla)-TODAY)/86400000;
+        const slaColor=diff<0?'var(--red)':diff<3?'var(--yellow)':'var(--muted)';
+        const owner=t.owner?`<span style="font-size:12px;color:var(--text-mid)">${t.owner}</span>`:`<span style="font-family:var(--mono);font-size:10px;color:var(--muted2);background:var(--page);padding:2px 8px;border-radius:100px;border:1px solid var(--border)">Sem analista</span>`;
+        return `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:10px 14px;font-family:var(--mono);font-size:11px;color:var(--blue)">#${t.id}</td>
+          <td style="padding:10px 14px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:500" title="${t.summary}">${t.summary}</td>
+          <td style="padding:10px 14px"><span class="${statusClass(t.status)}">${t.status}</span></td>
+          <td style="padding:10px 14px">${owner}</td>
+          <td style="padding:10px 14px;font-family:var(--mono);font-size:11px;color:var(--muted2)">${fmtDisplay(t.created)}</td>
+          <td style="padding:10px 14px;font-family:var(--mono);font-size:11px;font-weight:600;color:${slaColor}">${fmtDisplay(t.sla)}</td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="6" style="padding:30px;text-align:center;color:var(--muted)">Nenhum chamado encontrado</td></tr>`;
+  document.getElementById('kpiModalOverlay').classList.add('open');
+}
+function closeKpiModal() { document.getElementById('kpiModalOverlay').classList.remove('open'); }
+
+// ── TABLE ─────────────────────────────────────────────────────────────────────
+let filtered=[], currentPage=1, sortKey='sla', sortDir=1, activeFilter='Todos';
+const PER_PAGE=10;
+
+function renderTable() {
+  const start=(currentPage-1)*PER_PAGE;
+  const page=filtered.slice(start,start+PER_PAGE);
+  const tbody=document.getElementById('tableBody');
+  if (!filtered.length) { tbody.innerHTML=''; document.getElementById('noResults').style.display='block'; }
+  else {
+    document.getElementById('noResults').style.display='none';
+    tbody.innerHTML=page.map(t => {
+      const diff=(parseLocalDate(t.sla)-TODAY)/86400000;
+      const rowCls=diff>=0&&diff<3?'style="background:#FFFDF5;"':'';
+      const slaTag=diff>=0&&diff<3?`<span style="font-family:var(--mono);font-size:9px;background:#FFF8EC;color:var(--yellow);border:1px solid #F5D98840;padding:2px 7px;border-radius:100px;margin-left:6px">VENCE EM BREVE</span>`:'';
+      const ownerDisplay=t.owner?`<span style="font-size:12px;color:var(--text-mid)">${t.owner}</span>`:`<span style="font-family:var(--mono);font-size:10px;color:var(--muted2);background:var(--page);padding:2px 8px;border-radius:100px;border:1px solid var(--border)">Sem analista</span>`;
+      return `<tr ${rowCls}>
+        <td><span class="ticket-id">#${t.id}</span></td>
+        <td><div class="ticket-summary" title="${t.summary}">${t.summary}</div></td>
+        <td><span class="${statusClass(t.status)}">${t.status}</span></td>
+        <td>${ownerDisplay}</td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--muted2)">${fmtDisplay(t.created)}</td>
+        <td><span class="${slaClass(t.sla)}">${fmtDisplay(t.sla)}</span>${slaTag}</td>
+      </tr>`;
+    }).join('');
+  }
+  const totalPages=Math.ceil(filtered.length/PER_PAGE);
+  let pagHTML=`<span>Mostrando ${Math.min(start+1,filtered.length)}–${Math.min(start+PER_PAGE,filtered.length)} de ${filtered.length}</span><div class="page-btns">`;
+  for (let i=1;i<=totalPages;i++) pagHTML+=`<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  pagHTML+='</div>';
+  document.getElementById('pagination').innerHTML=pagHTML;
+}
+
+function goPage(p) { currentPage=p; renderTable(); }
+
+function applyFilter() {
+  const q=document.getElementById('searchInput').value.toLowerCase();
+  filtered=tickets.filter(t => {
+    const ms=!q||String(t.id).includes(q)||t.summary.toLowerCase().includes(q)||t.status.toLowerCase().includes(q)||(t.owner||'').toLowerCase().includes(q);
+    return ms&&(activeFilter==='Todos'||t.status===activeFilter);
+  });
+  filtered.sort((a,b) => {
+    let va,vb;
+    if (sortKey==='id')      {va=a.id;vb=b.id;}
+    else if (sortKey==='summary') {va=a.summary;vb=b.summary;}
+    else if (sortKey==='status')  {va=a.status;vb=b.status;}
+    else if (sortKey==='owner')   {va=a.owner||'';vb=b.owner||'';}
+    else if (sortKey==='created') {va=a.created;vb=b.created;}
+    else                          {va=a.sla;vb=b.sla;}
+    return va<vb?-sortDir:va>vb?sortDir:0;
+  });
+  currentPage=1; renderTable();
+}
+
+function sortTable(key) { if(sortKey===key)sortDir*=-1;else{sortKey=key;sortDir=1;} applyFilter(); }
+
+function buildFilters() {
+  const statuses=['Todos',...new Set(tickets.map(t=>t.status))];
+  document.getElementById('filterBtns').innerHTML=statuses.map(s=>`<button class="filter-btn ${s===activeFilter?'active':''}" onclick="setFilter('${s}')">${s}</button>`).join('');
+}
+
+function setFilter(s) { activeFilter=s; buildFilters(); applyFilter(); }
+
+// ── VIEW CHAMADOS ─────────────────────────────────────────────────────────────
+function switchView(view) {
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('viewDashboard').style.display='none';
+  document.getElementById('viewChamados').style.display='none';
+  document.getElementById('viewAnalistas').style.display='none';
+
+  if (view==='dashboard') {
+    document.querySelectorAll('.nav-item')[0].classList.add('active');
+    document.getElementById('viewDashboard').style.display='';
+    document.getElementById('pageTitle').textContent='Central de Chamados';
+    document.getElementById('pageSub').textContent='Gestão de Atendimento — Visão Gerencial';
+  } else if (view==='chamados') {
+    document.querySelectorAll('.nav-item')[1].classList.add('active');
+    document.getElementById('viewChamados').style.display='';
+    document.getElementById('pageTitle').textContent='Chamados';
+    document.getElementById('pageSub').textContent='Visão completa — Ativos e Pausados';
+    buildChamadosView();
+  } else if (view==='analistas') {
+    document.querySelectorAll('.nav-item')[2].classList.add('active');
+    document.getElementById('viewAnalistas').style.display='';
+    document.getElementById('pageTitle').textContent='Analistas';
+    document.getElementById('pageSub').textContent='Visão de chamados por analista';
+    buildAnalistasView();
+  }
+}
+
+// ── BUILD ANALISTAS VIEW ──────────────────────────────────────────────────────
+function buildAnalistasView() {
+  if (!tickets.length) {
+    document.getElementById('analistasContent').innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;text-align:center;">
+        <div style="font-size:56px;margin-bottom:20px;">📂</div>
+        <div style="font-family:var(--serif);font-size:22px;font-weight:700;color:var(--text);margin-bottom:10px;">Nenhuma planilha importada</div>
+        <div style="font-size:14px;color:var(--muted);margin-bottom:28px;">Importe sua planilha para visualizar os dados dos analistas.</div>
+        <button class="btn-primary" onclick="openModal()" style="font-size:14px;padding:10px 24px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Importar Planilha
+        </button>
+      </div>`;
+    return;
+  }
+
+  const palette = ['#0055CC','#1A9E5C','#6B2ECC','#C95B00','#D92B3A','#0EA5E9','#C97A00','#0B8A8A'];
+
+  // Agrupa tickets por analista
+  const analistas = {};
+  tickets.forEach(t => {
+    const nome = t.owner && t.owner.trim() ? t.owner.trim() : '— Sem analista';
+    if (!analistas[nome]) analistas[nome] = [];
+    analistas[nome].push(t);
+  });
+
+  // Ordena: analistas com nome primeiro, sem analista por último
+  const ordenados = Object.entries(analistas).sort((a,b) => {
+    if (a[0]==='— Sem analista') return 1;
+    if (b[0]==='— Sem analista') return -1;
+    return b[1].length - a[1].length;
+  });
+
+  const cards = ordenados.map(([nome, lista], idx) => {
+    const isSem   = nome === '— Sem analista';
+    const color   = isSem ? '#9BAABB' : palette[idx % palette.length];
+    const initial = isSem ? '?' : nome.trim().charAt(0).toUpperCase();
+
+    const total   = lista.length;
+    const ativos  = lista.filter(t => STATUS_ATIVOS.includes(t.status));
+    const pausados= lista.filter(t => !STATUS_ATIVOS.includes(t.status));
+
+    // SLA dos ativos
+    const vencidos  = ativos.filter(t => parseLocalDate(t.sla) <= END_OF_TODAY);
+    const proximos  = ativos.filter(t => { const d=(parseLocalDate(t.sla)-TODAY)/86400000; return d>0&&d<=4; });
+    const noPrazo   = ativos.filter(t => (parseLocalDate(t.sla)-TODAY)/86400000>4);
+
+    // SLA dos pausados
+    const pausFora  = pausados.filter(t => parseLocalDate(t.sla) < TODAY);
+
+    // Gera linhas da tabela de chamados do analista
+    const rows = lista.sort((a,b)=>parseLocalDate(a.sla)-parseLocalDate(b.sla)).map(t => {
+      const m = (() => {
+        const g = slaGroup(t);
+        const diff=(parseLocalDate(t.sla)-TODAY)/86400000;
+        if (g==='vencido'||g==='hoje') return {bg:'#FFF0F1',color:'#D92B3A',label:g==='hoje'?'Vence hoje':`${Math.abs(Math.floor(diff))}d vencido`};
+        if (g==='proximo') return {bg:'#FFF8EC',color:'#C97A00',label:`${Math.ceil(diff)}d restantes`};
+        if (g==='prazo')   return {bg:'#E8FAF0',color:'#1A9E5C',label:`${Math.ceil(diff)}d restantes`};
+        if (parseLocalDate(t.sla)<TODAY) return {bg:'#F3EEFF',color:'#6B2ECC',label:`${Math.abs(Math.floor(diff))}d vencido`};
+        return {bg:'#E8FAF0',color:'#1A9E5C',label:`${Math.ceil(diff)}d restantes`};
+      })();
+      return `<tr style="border-bottom:1px solid #F0F3F7;" onmouseover="this.style.background='#F7F9FC'" onmouseout="this.style.background=''">
+        <td style="padding:9px 12px;font-family:var(--mono);font-size:11px;color:var(--blue);white-space:nowrap;">#${t.id}</td>
+        <td style="padding:9px 12px;font-size:12px;font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.summary}">${t.summary}</td>
+        <td style="padding:9px 12px;"><span class="${statusClass(t.status)}">${t.status}</span></td>
+        <td style="padding:9px 12px;font-family:var(--mono);font-size:11px;color:var(--muted2);white-space:nowrap;">${fmtDisplay(t.sla)}</td>
+        <td style="padding:9px 12px;"><span style="background:${m.bg};color:${m.color};font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 9px;border-radius:100px;white-space:nowrap;">${m.label}</span></td>
+      </tr>`;
+    }).join('');
+
+    return `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px;">
+
+        <!-- Cabeçalho do card -->
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="width:42px;height:42px;border-radius:50%;background:${color}18;border:2px solid ${color}44;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;color:${color};flex-shrink:0;">${initial}</div>
+            <div>
+              <div style="font-size:15px;font-weight:700;color:var(--text);">${nome}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">${total} chamado${total!==1?'s':''} no total</div>
+            </div>
+          </div>
+
+          <!-- Mini KPIs -->
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <div style="background:var(--green-lt);border:1px solid #a3e4c1;border-radius:8px;padding:8px 14px;text-align:center;min-width:70px;">
+              <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--green);line-height:1;">${ativos.length}</div>
+              <div style="font-size:10px;color:var(--green);margin-top:2px;font-weight:600;">Ativos</div>
+            </div>
+            <div style="background:#F3F5F9;border:1px solid var(--border);border-radius:8px;padding:8px 14px;text-align:center;min-width:70px;">
+              <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--muted);line-height:1;">${pausados.length}</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px;font-weight:600;">Pausados</div>
+            </div>
+            ${vencidos.length ? `<div style="background:var(--red-lt);border:1px solid #f9c0c4;border-radius:8px;padding:8px 14px;text-align:center;min-width:70px;">
+              <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--red);line-height:1;">${vencidos.length}</div>
+              <div style="font-size:10px;color:var(--red);margin-top:2px;font-weight:600;">Vencidos</div>
+            </div>` : ''}
+            ${proximos.length ? `<div style="background:var(--yellow-lt);border:1px solid #f5d988;border-radius:8px;padding:8px 14px;text-align:center;min-width:70px;">
+              <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--yellow);line-height:1;">${proximos.length}</div>
+              <div style="font-size:10px;color:var(--yellow);margin-top:2px;font-weight:600;">Próximos</div>
+            </div>` : ''}
+            ${pausFora.length ? `<div style="background:var(--purple-lt);border:1px solid #c4a3e4;border-radius:8px;padding:8px 14px;text-align:center;min-width:70px;">
+              <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--purple);line-height:1;">${pausFora.length}</div>
+              <div style="font-size:10px;color:var(--purple);margin-top:2px;font-weight:600;">Paus. venc.</div>
+            </div>` : ''}
+            <div style="background:var(--blue-lt);border:1px solid #a3c4f9;border-radius:8px;padding:8px 14px;text-align:center;min-width:70px;">
+              <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--blue);line-height:1;">${noPrazo.length}</div>
+              <div style="font-size:10px;color:var(--blue);margin-top:2px;font-weight:600;">No Prazo</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela de chamados -->
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;">
+            <thead><tr>
+              <th style="background:var(--page);padding:8px 12px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">Nº Chamado</th>
+              <th style="background:var(--page);padding:8px 12px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Resumo</th>
+              <th style="background:var(--page);padding:8px 12px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Status</th>
+              <th style="background:var(--page);padding:8px 12px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">SLA</th>
+              <th style="background:var(--page);padding:8px 12px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Situação</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('analistasContent').innerHTML = `
+    <div style="margin-bottom:18px;display:flex;align-items:center;gap:12px;">
+      <div style="font-size:13px;color:var(--muted);">${ordenados.length} analista${ordenados.length!==1?'s':''} com chamados atribuídos</div>
+    </div>
+    ${cards}`;
+}
+
+function buildChamadosView() {
+  const groups={vencido:[],hoje:[],proximo:[],prazo:[],pausado:[]};
+  tickets.forEach(t=>groups[slaGroup(t)].push(t));
+
+  function ticketMeta(t) {
+    const g=slaGroup(t);
+    const slaDate=parseLocalDate(t.sla);
+    const diff=(slaDate-TODAY)/86400000;
+    if (g==='vencido'||g==='hoje') return {pillBg:'#FFF0F1',pillColor:'#D92B3A',label:g==='hoje'?'Vence hoje':`${Math.abs(Math.floor(diff))}d vencido`,borderColor:'#D92B3A'};
+    if (g==='proximo') return {pillBg:'#FFF8EC',pillColor:'#C97A00',label:`${Math.ceil(diff)}d restantes`,borderColor:'#C97A00'};
+    if (g==='prazo')   return {pillBg:'#E8FAF0',pillColor:'#1A9E5C',label:`${Math.ceil(diff)}d restantes`,borderColor:'#1A9E5C'};
+    if (slaDate<TODAY) return {pillBg:'#F3EEFF',pillColor:'#6B2ECC',label:`${Math.abs(Math.floor(diff))}d vencido`,borderColor:'#6B2ECC'};
+    return {pillBg:'#E8FAF0',pillColor:'#1A9E5C',label:`${Math.ceil(diff)}d restantes`,borderColor:'#1A9E5C'};
+  }
+
+  function renderGroup(icon, label, color, bg, list) {
+    if (!list.length) return '';
+    const groupId = 'grp_' + Math.random().toString(36).slice(2,8);
+    return `
+      <div class="chamados-group">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div class="chamados-group-title" style="background:${bg};color:${color};margin-bottom:0;flex:1;">
+            <span>${icon} ${label} <span style="font-size:11px;opacity:.7;">(${list.length})</span></span>
+          </div>
+          <button data-copy="${groupId}" onclick="copyGroupHTML('${groupId}','${icon} ${label}')"
+            style="margin-left:10px;background:#fff;border:1px solid ${color};color:${color};font-family:var(--mono);font-size:11px;font-weight:700;padding:6px 14px;border-radius:7px;cursor:pointer;white-space:nowrap;transition:background .15s;"
+            onmouseover="this.style.background='${bg}'" onmouseout="this.style.background='#fff'">
+            📋 Copiar para Teams
+          </button>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);">
+          <table id="${groupId}" style="width:100%;border-collapse:collapse;font-size:12.5px;">
+            <thead><tr>
+              <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);white-space:nowrap;">Nº Chamado</th>
+              <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Resumo</th>
+              <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Status</th>
+              <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Analista</th>
+              <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">SLA</th>
+              <th style="background:var(--page);padding:9px 14px;text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);">Situação</th>
+            </tr></thead>
+            <tbody>
+              ${list.map((t,i) => {
+                const m=ticketMeta(t);
+                const owner=t.owner?`<span style="font-size:12px;color:var(--text-mid)">${t.owner}</span>`:`<span style="font-family:var(--mono);font-size:10px;color:var(--muted2);background:var(--page);padding:2px 8px;border-radius:100px;border:1px solid var(--border)">Sem analista</span>`;
+                return `<tr style="border-bottom:1px solid #F0F3F7;" onmouseover="this.style.background='#F7F9FC'" onmouseout="this.style.background=''">
+                  <td style="padding:11px 14px;border-left:3px solid ${m.borderColor};"><span style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--blue);">#${t.id}</span></td>
+                  <td style="padding:11px 14px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;color:var(--text);" title="${t.summary}">${t.summary}</td>
+                  <td style="padding:11px 14px;"><span class="${statusClass(t.status)}">${t.status}</span></td>
+                  <td style="padding:11px 14px;">${owner}</td>
+                  <td style="padding:11px 14px;font-family:var(--mono);font-size:11px;font-weight:600;color:${m.pillColor};white-space:nowrap;">${fmtDisplay(t.sla)}</td>
+                  <td style="padding:11px 14px;"><span style="background:${m.pillBg};color:${m.pillColor};font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 10px;border-radius:100px;white-space:nowrap;">${m.label}</span></td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  const ativos   = tickets.filter(t=>STATUS_ATIVOS.includes(t.status));
+  const pausados = tickets.filter(t=>!STATUS_ATIVOS.includes(t.status));
+  const ativosVencido=[...groups.vencido,...groups.hoje];
+  const ativosProximo=groups.proximo;
+  const ativosPrazo=groups.prazo;
+  const pausadosFora=pausados.filter(t=>parseLocalDate(t.sla)<TODAY);
+  const pausadosProx=pausados.filter(t=>{const d=(parseLocalDate(t.sla)-TODAY)/86400000;return d>=0&&d<=4;});
+  const pausadosPrazo=pausados.filter(t=>(parseLocalDate(t.sla)-TODAY)/86400000>4);
+
+  document.getElementById('chamadosContent').innerHTML = `
+    <div class="chamados-section">
+      <div class="chamados-section-header">
+        <div style="width:12px;height:12px;border-radius:50%;background:var(--green);flex-shrink:0;"></div>
+        <div class="chamados-section-title">Ativos</div>
+        <div class="chamados-section-count">${ativos.length} chamados</div>
+      </div>
+      ${renderGroup('🔴','Prioridade','#D92B3A','#FFF0F1',ativosVencido)}
+      ${renderGroup('🟡','Próximos a Vencer','#C97A00','#FFF8EC',ativosProximo)}
+      ${renderGroup('🟢','No Prazo','#1A9E5C','#E8FAF0',ativosPrazo)}
+      ${!ativos.length?'<div class="tc-empty">Nenhum chamado ativo 🎉</div>':''}
+    </div>
+    <div class="chamados-section">
+      <div class="chamados-section-header">
+        <div style="width:12px;height:12px;border-radius:50%;background:var(--muted2);flex-shrink:0;"></div>
+        <div class="chamados-section-title">Pausados</div>
+        <div class="chamados-section-count">${pausados.length} chamados</div>
+      </div>
+      ${renderGroup('🟣','Fora da SLA','#6B2ECC','#F3EEFF',pausadosFora)}
+      ${renderGroup('🟡','Próximos a Vencer','#C97A00','#FFF8EC',pausadosProx)}
+      ${renderGroup('🟢','No Prazo','#1A9E5C','#E8FAF0',pausadosPrazo)}
+      ${!pausados.length?'<div class="tc-empty">Nenhum chamado pausado</div>':''}
+    </div>`;
+}
+
+// ── TEAMS MODAL ───────────────────────────────────────────────────────────────
+function openTeamsModal()  { buildTeamsContent(); document.getElementById('teamsModalOverlay').classList.add('open'); }
+function closeTeamsModal() { document.getElementById('teamsModalOverlay').classList.remove('open'); }
+
+function printTeams() {
+  const toolbar=document.getElementById('teamsToolbar');
+  const overlay=document.getElementById('teamsModalOverlay');
+  toolbar.style.display='none'; overlay.style.backdropFilter='none'; overlay.style.background='transparent';
+  window.print();
+  setTimeout(()=>{ toolbar.style.display=''; overlay.style.backdropFilter=''; overlay.style.background=''; },500);
+}
+
+function buildTeamsContent() {
+  const groups={vencido:[],hoje:[],proximo:[],prazo:[],pausado:[]};
+  tickets.forEach(t=>groups[slaGroup(t)].push(t));
+  const now=new Date();
+  document.getElementById('teamsDate').textContent=`${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+  const ativos=tickets.filter(t=>STATUS_ATIVOS.includes(t.status)).length;
+  const semAnalista=tickets.filter(t=>!t.owner||!t.owner.trim()).length;
+  document.getElementById('teamsKpiBadges').innerHTML=`
+    <div style="background:rgba(255,255,255,.1);border-radius:7px;padding:10px 16px;text-align:center;"><div style="font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700;color:#fff;">${tickets.length}</div><div style="font-size:13px;color:#7A94B8;text-transform:uppercase;letter-spacing:.5px;">Total</div></div>
+    <div style="background:rgba(26,158,92,.2);border-radius:7px;padding:10px 16px;text-align:center;"><div style="font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700;color:#22c97a;">${ativos}</div><div style="font-size:13px;color:#7A94B8;text-transform:uppercase;letter-spacing:.5px;">Ativos</div></div>
+    <div style="background:rgba(217,43,58,.2);border-radius:7px;padding:10px 16px;text-align:center;"><div style="font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:700;color:#f25565;">${semAnalista}</div><div style="font-size:13px;color:#7A94B8;text-transform:uppercase;letter-spacing:.5px;">Sem Analista</div></div>`;
+  const slaDef=[
+    {list:[...groups.vencido,...groups.hoje],label:'🔴 Prioridade',color:'#D92B3A',bg:'#FFF0F1',border:'#f9c0c4'},
+    {list:groups.proximo,label:'🟡 Próximos a Vencer',color:'#C97A00',bg:'#FFF8EC',border:'#f5d988'},
+    {list:groups.prazo,  label:'🟢 No Prazo',          color:'#1A9E5C',bg:'#E8FAF0',border:'#a3e4c1'},
+  ];
+  document.getElementById('teamsSlaCards').innerHTML=slaDef.map(z=>`
+    <div style="background:${z.bg};border:1px solid ${z.border};border-top:3px solid ${z.color};border-radius:10px;padding:18px 20px;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;color:${z.color};letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;">${z.label}</div>
+      <div style="font-size:52px;font-weight:700;color:${z.color};line-height:1;margin-bottom:8px;">${z.list.length}</div>
+      <div style="font-size:14px;color:#6B7585;">${Math.round(z.list.length/tickets.length*100)}% do total</div>
+    </div>`).join('');
+  const kpiDef=[
+    {label:'Total',       value:tickets.length,color:'#0055CC',bg:'#EBF2FF'},
+    {label:'Ativos',      value:ativos,color:'#1A9E5C',bg:'#E8FAF0'},
+    {label:'Fora da SLA', value:tickets.filter(t=>parseLocalDate(t.sla)<TODAY).length,color:'#D92B3A',bg:'#FFF0F1'},
+    {label:'Vencidos',    value:tickets.filter(t=>parseLocalDate(t.sla)<=END_OF_TODAY&&STATUS_ATIVOS.includes(t.status)).length,color:'#6B2ECC',bg:'#F3EEFF'},
+    {label:'Sem Analista',value:semAnalista,color:'#C97A00',bg:'#FFF8EC'},
+  ];
+  document.getElementById('teamsKpiCards').innerHTML=kpiDef.map(k=>`
+    <div style="background:${k.bg};border:1px solid ${k.color}33;border-top:3px solid ${k.color};border-radius:10px;padding:16px 18px;">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;text-transform:uppercase;letter-spacing:.7px;color:${k.color};margin-bottom:8px;">${k.label}</div>
+      <div style="font-size:40px;font-weight:700;color:${k.color};line-height:1;">${k.value}</div>
+    </div>`).join('');
+  const urgentes=[...[...groups.vencido,...groups.hoje].map(t=>({...t,_g:'prioridade'})),...groups.proximo.map(t=>({...t,_g:'proximo'}))].sort((a,b)=>parseLocalDate(a.sla)-parseLocalDate(b.sla));
+  document.getElementById('teamsTableCount').textContent=`${urgentes.length} chamado${urgentes.length!==1?'s':''} — Prioridade + Próximos a Vencer`;
+  document.getElementById('teamsTableBody').innerHTML=urgentes.length
+    ? urgentes.map((t,i)=>{
+        const isPri=t._g==='prioridade';
+        const diff=(parseLocalDate(t.sla)-TODAY)/86400000;
+        const g=slaGroup(t);
+        const sBg=isPri?'#FFF0F1':'#FFF8EC';
+        const sColor=isPri?'#D92B3A':'#C97A00';
+        const sLabel=g==='vencido'?`${Math.abs(Math.floor(diff))}d vencido`:g==='hoje'?'Vence hoje':`${Math.ceil(diff)}d restantes`;
+        return `<tr style="background:${i%2===0?'#fff':'#FAFBFC'};border-bottom:1px solid #F0F3F7;">
+          <td style="padding:13px 16px;font-family:'IBM Plex Mono',monospace;font-size:15px;color:#0055CC;white-space:nowrap;">#${t.id}</td>
+          <td style="padding:13px 16px;font-size:16px;font-weight:500;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.summary}">${t.summary}</td>
+          <td style="padding:13px 16px;"><span class="${statusClass(t.status)}" style="font-size:14px;padding:5px 14px;">${t.status}</span></td>
+          <td style="padding:13px 16px;font-size:15px;color:#374151;">${t.owner||'—'}</td>
+          <td style="padding:13px 16px;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:${sColor};white-space:nowrap;">${fmtDisplay(t.sla)}</td>
+          <td style="padding:13px 16px;"><span style="background:${sBg};color:${sColor};font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:700;padding:5px 14px;border-radius:100px;white-space:nowrap;">${sLabel}</span></td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="6" style="padding:30px;text-align:center;color:#6B7585;font-size:15px;">Nenhum chamado com atenção necessária 🎉</td></tr>`;
+}
+
+// ── RESIZE & DRAG ─────────────────────────────────────────────────────────────
+(function(){
+  let action=null,dir=null,startX,startY,startW,startH,startL,startT;
+  const MIN_W=400,MIN_H=300;
+  const getModal=()=>document.getElementById('teamsModal');
+  document.addEventListener('mousedown',e=>{
+    const toolbar=document.getElementById('teamsToolbar');
+    if (!toolbar) return;
+    if (e.target.classList.contains('resize-handle')) {
+      const modal=getModal(), rect=modal.getBoundingClientRect();
+      dir=e.target.dataset.dir; action='resize';
+      startX=e.clientX; startY=e.clientY; startW=rect.width; startH=rect.height; startL=rect.left; startT=rect.top;
+      modal.style.maxWidth='none'; modal.style.maxHeight='none'; modal.style.margin='0'; modal.style.position='fixed'; modal.style.left=startL+'px'; modal.style.top=startT+'px';
+      e.preventDefault(); return;
+    }
+    if (toolbar.contains(e.target)&&!e.target.closest('button')) {
+      const modal=getModal(), rect=modal.getBoundingClientRect();
+      action='drag'; startX=e.clientX-rect.left; startY=e.clientY-rect.top;
+      modal.style.maxWidth='none'; modal.style.maxHeight='none'; modal.style.margin='0'; modal.style.position='fixed'; modal.style.left=rect.left+'px'; modal.style.top=rect.top+'px';
+      e.preventDefault();
+    }
+  });
+  document.addEventListener('mousemove',e=>{
+    if (!action) return;
+    const modal=getModal();
+    if (action==='drag') { modal.style.left=(e.clientX-startX)+'px'; modal.style.top=(e.clientY-startY)+'px'; }
+    else {
+      let nW=startW,nH=startH,nL=startL,nT=startT;
+      const dx=e.clientX-startX,dy=e.clientY-startY;
+      if(dir.includes('e'))nW=Math.max(MIN_W,startW+dx);
+      if(dir.includes('s'))nH=Math.max(MIN_H,startH+dy);
+      if(dir.includes('w')){nW=Math.max(MIN_W,startW-dx);nL=startL+(startW-nW);}
+      if(dir.includes('n')){nH=Math.max(MIN_H,startH-dy);nT=startT+(startH-nH);}
+      modal.style.width=nW+'px'; modal.style.height=nH+'px'; modal.style.left=nL+'px'; modal.style.top=nT+'px';
+    }
+  });
+  document.addEventListener('mouseup',()=>{action=null;dir=null;});
+})();
+
+// ── IMPORT ────────────────────────────────────────────────────────────────────
+let pendingTickets=null;
+function openModal()  { document.getElementById('modalOverlay').classList.add('open'); resetModal(); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+function resetModal() {
+  document.getElementById('fileInput').value='';
+  document.getElementById('btnApply').style.display='none';
+  const st=document.getElementById('modalStatus');
+  st.style.display='none'; st.className='modal-status'; pendingTickets=null;
+}
+
+function setStatus(msg,type) { const el=document.getElementById('modalStatus'); el.textContent=msg; el.className='modal-status '+type; el.style.display='block'; }
+
+const dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)handleFile(f);});
+
+function handleFile(file) {
+  if (!file) return;
+  if (!file.name.match(/\.xlsx?$/i)) { setStatus('❌ Formato inválido. Use .xlsx ou .xls','error'); return; }
+  setStatus('⏳ Lendo arquivo...','loading');
+  document.getElementById('btnApply').style.display='none';
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try {
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      const sheetName=wb.SheetNames.includes('BASE')?'BASE':wb.SheetNames[0];
+      const ws=wb.Sheets[sheetName];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      const header=rows[0].map(h=>String(h).toLowerCase().trim());
+      const col=name=>header.findIndex(h=>h.includes(name));
+      const idIdx=col('requisição de serviço'),sumIdx=col('resumo'),statusIdx=col('status'),createdIdx=col('criado em'),slaIdx=col('sla');
+      const ownerIdx=(()=>{for(const k of['proprietário','proprietario','analista','owner','atribuído','atribuido']){const i=col(k);if(i>=0)return i;}return -1;})();
+      const dataRows=rows.slice(1).filter(r=>r[idIdx]&&r[sumIdx]);
+      if (!dataRows.length) { setStatus(`❌ Planilha vazia ou sem dados na aba "${sheetName}".`,'error'); return; }
+      const parsed=dataRows.map(r=>({id:Number(r[idIdx]),summary:String(r[sumIdx]),status:String(r[statusIdx]||''),created:fmtDate(r[createdIdx]),sla:fmtDate(r[slaIdx]),owner:ownerIdx>=0?String(r[ownerIdx]||'').trim():''})).filter(r=>r.id&&r.summary);
+      if (!parsed.length) { setStatus('❌ Nenhum registro válido encontrado.','error'); return; }
+      pendingTickets=parsed;
+      setStatus(`✅ ${parsed.length} chamados carregados da aba "${sheetName}". Clique em Aplicar Dados.`,'success');
+      document.getElementById('btnApply').style.display='inline-block';
+    } catch(err) { setStatus('❌ Erro ao processar: '+err.message,'error'); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function applyImport() {
+  if (!pendingTickets) return;
+  tickets.length=0; pendingTickets.forEach(t=>tickets.push(t));
+  document.getElementById('updateLabel').textContent=todayStr();
+  activeFilter='Todos'; sortKey='sla'; sortDir=1;
+  rebuildAll(); closeModal();
+}
+
+// ── COPY GROUP HTML ───────────────────────────────────────────────────────────
+function copyGroupHTML(groupId, label) {
+  const table = document.getElementById(groupId);
+  if (!table) return;
+
+  const html = `
+    <div style="font-family:Segoe UI,sans-serif;font-size:13px;">
+      <p style="font-weight:700;margin-bottom:8px;">${label}</p>
+      ${table.outerHTML}
+    </div>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const item = new ClipboardItem({ 'text/html': blob });
+
+  navigator.clipboard.write([item]).then(() => {
+    const btn = document.querySelector(`[data-copy="${groupId}"]`);
+    if (btn) { const orig=btn.textContent; btn.textContent='✅ Copiado!'; btn.style.opacity='.7'; setTimeout(()=>{ btn.textContent=orig; btn.style.opacity=''; },2000); }
+  }).catch(() => alert('Não foi possível copiar. Verifique as permissões do navegador.'));
+}
+
+// ── COPY GROUP TEXT ───────────────────────────────────────────────────────────
+function copyGroupText(groupId, label) {
+  const table = document.getElementById(groupId);
+  if (!table) return;
+  const rows = table.querySelectorAll('tr');
+  const cols = [14, 30, 22, 18, 12, 14];
+  const pad  = (str, len) => String(str).substring(0, len).padEnd(len);
+  let text = label + '\n' + '─'.repeat(cols.reduce((a,b)=>a+b+3, 0)) + '\n';
+  rows.forEach((tr, i) => {
+    const cells = tr.querySelectorAll('th, td');
+    const line  = Array.from(cells).map((c, j) => pad(c.innerText.trim(), cols[j]||14)).join(' │ ');
+    text += line + '\n';
+    if (i === 0) text += '─'.repeat(cols.reduce((a,b)=>a+b+3, 0)) + '\n';
+  });
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector(`[data-copy="${groupId}"]`);
+    if (btn) { const orig=btn.textContent; btn.textContent='✅ Copiado!'; btn.style.opacity='.7'; setTimeout(()=>{ btn.textContent=orig; btn.style.opacity=''; },2000); }
+  }).catch(() => alert('Não foi possível copiar. Verifique as permissões do navegador.'));
+}
+
+// ── ANIMATED COUNTER ─────────────────────────────────────────────────────────
+function animateCounter(el, target, duration = 800) {
+  const start    = performance.now();
+  const update   = (now) => {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    // Easing: ease-out
+    const eased  = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(eased * target);
+    if (progress < 1) requestAnimationFrame(update);
+  };
+  requestAnimationFrame(update);
+}
+
+// ── REBUILD ───────────────────────────────────────────────────────────────────
+function rebuildAll() {
+  buildSlaCenario(); buildKPIs(); buildStatusChart(); buildPieChart(); buildMonthChart(); buildRanking(); buildFilters(); applyFilter();
+  // Exibe mensagem de boas-vindas se não houver dados
+  const empty = document.getElementById('emptyState');
+  if (empty) empty.style.display = tickets.length ? 'none' : 'flex';
+  // Anima contadores nos KPI e SLA cards
+  if (tickets.length) {
+    setTimeout(() => {
+      document.querySelectorAll('.kpi-value').forEach(el => {
+        const val = parseInt(el.textContent);
+        if (!isNaN(val)) animateCounter(el, val);
+      });
+      document.querySelectorAll('.sla-num').forEach(el => {
+        const val = parseInt(el.textContent);
+        if (!isNaN(val)) animateCounter(el, val);
+      });
+      document.querySelectorAll('.bar-count, .anim-num').forEach(el => {
+        const val = parseInt(el.textContent);
+        if (!isNaN(val)) animateCounter(el, val);
+      });
+    }, 50);
+  }
+}
+
+document.getElementById('searchInput').addEventListener('input', applyFilter);
+document.getElementById('updateLabel').textContent = todayStr();
+rebuildAll();
+</script>
+</body>
+</html>
